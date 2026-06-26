@@ -28,3 +28,12 @@ Alaska:  nearest stop is Washington, round trip = 1,824.3 miles
 Distance without Alaska & Hawaii:   11,048.6 miles
 Total with all 51:    = 17,788.9 miles
 ```
+
+### Assumptions / Limitations
+- Distance is calculated as the crow flies (straight line distance)
+- Doesn't account for actual travel paths
+
+### How it works
+1. Calculates distance from each capitol using coordinates and the haversine formula and creates a matrix with each capitol and its distance from each other
+2. It first creates a route just by mapping out each capitols closest unvisted neighbor
+3. It modifies the original route by improving any capitols whos paths cross over each other
