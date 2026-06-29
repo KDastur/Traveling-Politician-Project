@@ -1,3 +1,12 @@
+# Made by Kyle Dastur
+# 813-557-5053
+# Ksdastur1@gmail.com
+# https://github.com/KDastur
+
+# This code is made to find a solution to the traveling salesman problem
+# This program gives a path for traveling from Iowa to Washington DC, stopping at every US capitol on the way
+# This program also outputs the total distance you would have to travel as the crow flies
+
 import json
 from math import radians, sin, cos, sqrt, atan2
 
@@ -13,32 +22,30 @@ def haversine(lat1, lon1, lat2, lon2):
     a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
     return R * 2 * atan2(sqrt(a), sqrt(1-a))
 
-# Removing Hawaii and Alaska from main calculation (Outliers)
-contiguous = [c for c in capitals if c["state"] not in ("Hawaii", "Alaska")]
-hawaii = next(c for c in capitals if c["state"] == "Hawaii")
-alaska = next(c for c in capitals if c["state"] == "Alaska")
+# All 51 capitals are now part of the main calculation (no more outlier removal)
+all_states = capitals
 
 # Create a matrix with all capitols, and distances from each other
-n = len(contiguous)
+n = len(all_states)
 dist_matrix = [[0.0] * n for _ in range(n)]
 for i in range(n):
     for j in range(n):
         if i != j:
             dist_matrix[i][j] = haversine(
-                contiguous[i]["latitude"], contiguous[i]["longitude"],
-                contiguous[j]["latitude"], contiguous[j]["longitude"]
+                all_states[i]["latitude"], all_states[i]["longitude"],
+                all_states[j]["latitude"], all_states[j]["longitude"]
             )
 
 # Index's each state from the original JSON file
-def find_index(state_name):        
-    for i, c in enumerate(contiguous):
+def find_index(state_name):
+    for i, c in enumerate(all_states):
         if c["state"] == state_name:
             return i
     raise ValueError(f"'{state_name}' not found")
 
 # Finds closest unvisited neighboring capitol to the current one
 # Keeps track of the route
-def nearest_neighbor(dist_matrix, start, end, n):   
+def nearest_neighbor(dist_matrix, start, end, n):
     unvisited = set(range(n)) - {start, end}
     route = [start]
     current = start
@@ -51,12 +58,12 @@ def nearest_neighbor(dist_matrix, start, end, n):
     return route
 
 # Measures total distance using original route and distance matrix
-def total_distance(route, dist_matrix):              
+def total_distance(route, dist_matrix):
     return sum(dist_matrix[route[i]][route[i+1]] for i in range(len(route)-1))
 
 # Modifies route to reduce total distance
 # Removes any crossing paths and improves it
-def two_opt(route, dist_matrix):                     
+def two_opt(route, dist_matrix):
     best = route[:]
     improved = True
     while improved:
@@ -69,47 +76,18 @@ def two_opt(route, dist_matrix):
                     improved = True
     return best
 
-# Finds nearest stop for Alaska and Hawaii, returns the nearest state and best distance 
-def find_nearest_stop(outlier, route_list, capitals_list):
-    best_dist = float('inf')
-    best_stop = None
-    for idx in route_list:
-        d = haversine(
-            outlier["latitude"], outlier["longitude"],
-            capitals_list[idx]["latitude"], capitals_list[idx]["longitude"]
-        )
-        if d < best_dist:
-            best_dist = d
-            best_stop = capitals_list[idx]["state"]
-    return best_stop, best_dist
-
 # Calls functions using start and endpoints
 start_idx = find_index("Iowa")
 end_idx   = find_index("Washington DC")
 
-# Caluclates nearest neighbor route, and optimized route
+# Calculates nearest neighbor route, and optimized route
 route = nearest_neighbor(dist_matrix, start_idx, end_idx, n)
 optimized = two_opt(route, dist_matrix)
 final_dist = total_distance(optimized, dist_matrix)
 
-
-print("\nOptimized Route (Not including Alaska and Hawaii)\n")
+print("\nOptimized Route: \n")
 for i, idx in enumerate(optimized):
-    c = contiguous[idx]
+    c = all_states[idx]
     print(f"  {i+1:>2}. {c['state']} ({c['StateCapitolCity']})")
 
-hawaii_nearest, hawaii_dist = find_nearest_stop(hawaii, optimized, contiguous)
-alaska_nearest, alaska_dist = find_nearest_stop(alaska, optimized, contiguous)
-
-hawaii_roundtrip = hawaii_dist * 2
-alaska_roundtrip = alaska_dist * 2
-total_with_outliers = final_dist + hawaii_roundtrip + alaska_roundtrip
-
-# Final output, includes distance with and without including hawaii and alaska
-print(f"\nOutlier States Detours (round trip from nearest stop)")
-print(f"Hawaii:  nearest stop is {hawaii_nearest}, "
-      f"round trip = {hawaii_roundtrip:,.1f} miles")
-print(f"Alaska:  nearest stop is {alaska_nearest}, "
-      f"round trip = {alaska_roundtrip:,.1f} miles")
-print(f"\nDistance without Alaska & Hawaii:   {final_dist:,.1f} miles")
-print(f"Total with all 51:    = {total_with_outliers:,.1f} miles")
+print(f"\nTotal distance: {final_dist:,.1f} miles")
